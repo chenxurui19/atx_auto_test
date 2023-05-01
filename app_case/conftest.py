@@ -280,7 +280,7 @@ def cmd_device_sn(request):
 
 def cmd_bundle_id(request):
     """
-    脚本获取命令行参数的接口：手机设备号
+    脚本获取命令行参数的接口：测试包名
     :param request:
     :return:
     """
