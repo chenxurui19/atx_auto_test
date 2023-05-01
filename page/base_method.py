@@ -19,8 +19,11 @@ class BaseMethod:
         self.platform = platform
         self.src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
-    def start_app(self, bundle_id):
-        self.driver.app_start(bundle_id)
+    def start_app(self, bundle_id, wait=True):
+        if self.platform == GlobalVar.IOS:
+            self.driver.app_start(bundle_id, wait_for_quiescence=wait)
+        else:
+            self.driver.app_start(bundle_id, wait=wait)
 
     def stop_app(self, bundle_id):
         self.driver.app_stop(bundle_id)
