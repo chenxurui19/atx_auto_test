@@ -198,7 +198,7 @@ class BaseMethod:
             el = self.find_element(locator, index)
         except Exception as e:
             return False
-        return True
+        return el
 
     def get_text(self, locator, index=0):
         """
@@ -212,7 +212,7 @@ class BaseMethod:
         else:
             return self.find_element(locator, index).get_text()
 
-    def wait_exist(self, locator, timeout=3.0, index=0):
+    def wait_exist(self, locator, timeout=10.0):
         """
         等待控件出现
         :param locator: (定位方法, 定位文本)，比如('xpath', '//*[@text="视频"]')
@@ -220,12 +220,22 @@ class BaseMethod:
         :param index: 索引
         :return: 控件是否存在
         """
-        if self.platform == GlobalVar.IOS:
-            return True if self.find_element(locator, index).wait(timeout) else False
+        method = locator[0]
+        values = locator[1]
+        if method == MobileBy.ID:
+            return self.driver(resourceId=values).wait(timeout=timeout)
+        elif method == MobileBy.NAME:
+            return self.driver(name=values).wait(timeout=timeout)
+        elif method == MobileBy.XPATH:
+            return True if self.driver.xpath(values).wait(timeout=timeout) else False
+        elif method == MobileBy.TEXT:
+            return self.driver(className=values[0], text=values[1]).wait(timeout=timeout)
+        elif method == MobileBy.TEXT_CONTAINS:
+            return self.driver(className=values[0], textContains=values[1]).wait(timeout=timeout)
         else:
-            return True if self.find_element(locator, index).wait(timeout) else False
+            raise Exception("Method Not Support")
 
-    def wait_no_exist(self, locator, timeout=3.0, index=0):
+    def wait_no_exist(self, locator, timeout=3.0):
         """
         等待控件消失
         :param locator: (定位方法, 定位文本)，比如('xpath', '//*[@text="视频"]')
@@ -233,10 +243,20 @@ class BaseMethod:
         :param index: 索引
         :return: 控件是否不存在
         """
-        if self.platform == GlobalVar.IOS:
-            return self.find_element(locator, index).wait_gone(timeout, raise_error=False)
+        method = locator[0]
+        values = locator[1]
+        if method == MobileBy.ID:
+            return self.driver(resourceId=values).wait_gone(timeout=timeout)
+        elif method == MobileBy.NAME:
+            return self.driver(name=values).wait_gone(timeout=timeout)
+        elif method == MobileBy.XPATH:
+            return True if self.driver.xpath(values).wait_gone(timeout=timeout) else False
+        elif method == MobileBy.TEXT:
+            return self.driver(className=values[0], text=values[1]).wait_gone(timeout=timeout)
+        elif method == MobileBy.TEXT_CONTAINS:
+            return self.driver(className=values[0], textContains=values[1]).wait_gone(timeout=timeout)
         else:
-            return self.find_element(locator, index).wait_gone(timeout)
+            raise Exception("Method Not Support")
 
     def swipe_by_screen(self, direction):
         """
@@ -330,10 +350,10 @@ class BaseMethod:
 
 if __name__ == '__main__':
     # iOS，main方法启动需要手动起wda
-    import wda
-
-    c = wda.Client("http://localhost:8100")
-    bm = BaseMethod(c, "iOS")
+    # import wda
+    #
+    # c = wda.Client("http://localhost:8100")
+    # bm = BaseMethod(c, "iOS")
     # # bm.stop_setting()   # 杀死设置
     # bm.start_setting()    # 启动设置
     # bm.click_home()       # 点击home键
@@ -353,13 +373,13 @@ if __name__ == '__main__':
     # bm.swipe_by_screen('left')
     # bm.set_text((MobileBy.NAME, "短信"), "hhh")
     # 根据图片查找控件并点击
-    bm.click_image(os.path.join(bm.src, "aircv_image", "WechatIMG97.jpeg"))
+    # bm.click_image(os.path.join(bm.src, "aircv_image", "WechatIMG97.jpeg"))
 
     # Android
-    # import uiautomator2 as u2
+    import uiautomator2 as u2
     #
-    # c = u2.connect()
-    # bm = BaseMethod(c, "Android")
+    c = u2.connect()
+    bm = BaseMethod(c, "Android")
     # bm.clear_app_data()
     # bm.stop_setting()
     # bm.start_setting()
@@ -372,7 +392,8 @@ if __name__ == '__main__':
     # bm.click_element((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA")))
     # bm.long_click_element((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA")))
     # print(bm.is_exist((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA"))))
-    # print(bm.wait_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
+    print(bm.wait_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
+    print(bm.wait_exist((MobileBy.TEXT, ("android.widget.TextView", "选取网络")), 10))
     # time.sleep(3)
     # print(bm.wait_no_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
     # bm.swipe_by_screen('left')

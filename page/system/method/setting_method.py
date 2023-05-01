@@ -26,4 +26,4 @@ class SettingMethod(BaseMethod):
         判断“网络”/“选取网络”文字是否存在，依此判断是否进入到Wi-Fi界面
         :return:
         """
-        return self.is_exist(LOCATOR.network_text)
+        return self.wait_exist(LOCATOR.network_text, 10)

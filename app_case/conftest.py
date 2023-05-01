@@ -2,7 +2,7 @@
 # @Time    : 2023/4/26 18:45
 # @Author  : CXRui
 # @File    : conftest.py
-# @Description :
+# @Description :    pytest特有的测试配置文件，可以理解成一个专门放fixture(设备、工具)的地方
 import logging
 import os
 import sys
@@ -18,13 +18,13 @@ import uiautomator2 as u2
 from py.xml import html
 from urllib.parse import quote
 
-src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))   # 当前的目录详细位置
 driver = None
-platform = ""
-device_sn = ""
+platform = ""   # 手机的平台
+device_sn = ""  # 手机的设备号
 server_ip = "127.0.0.1"  # WDA代理运行的ip，一般WDA都在同一台电脑执行，使用'127.0.0.1'不需要修改
 datetime_format = "%Y-%m-%d_%H.%M.%S"  # 时间格式化
-bundle_id = None
+bundle_id = None    # 测试的包名
 phone_log_progress = None  # 抓取log的进程
 phone_log_path = ""  # 测试机缓存日志临时保存地址
 
@@ -57,7 +57,7 @@ def driver_setup(request):
         GlobalVar.set_test_platform(GlobalVar.IOS)
         log_path = "{}{}_{}.log".format(log_dir, "wda_log", datetime.now().strftime(datetime_format))
         d = Device(device_sn)
-        cmd = [sys.executable, "-m", "tidevice", "-u", d.udid, "wdaproxy", "--port", wda_port]
+        cmd = [sys.executable, "-m", "tidevice", "-u", d.udid, "wdaproxy", "--port", wda_port]  # 启动WDA
         with open(log_path, "w+") as logfile:
             subprocess.Popen(cmd, stdout=logfile, stderr=logfile)
         # connect wda
@@ -264,7 +264,6 @@ def save_failed_device_log(html_path, name):
     subprocess.Popen(cmd, stderr=subprocess.PIPE)
     logcat_url = quote(html_path_name)
     html = '<div><a href="{0}">{0}</a></div>'.format(logcat_url)
-    logging.info(html)
     return html
 
 
