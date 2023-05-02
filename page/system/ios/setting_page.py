@@ -6,4 +6,4 @@ class SettingPage:
     wifi_text = (MobileBy.XPATH, '//XCUIElementTypeStaticText[@name="WIFI"]')
 
     # 选取网络的文字
-    network_text = (MobileBy.XPATH, '//XCUIElementTypeStaticText[@text="网络"]')
+    network_text = (MobileBy.XPATH, '//XCUIElementTypeStaticText[@name="网络"]')
