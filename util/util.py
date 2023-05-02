@@ -8,7 +8,7 @@ import socket
 import os
 import psutil
 import requests
-
+import shutil
 
 def create_port(host, start, end):
     """
@@ -66,6 +66,14 @@ def kill_wdaproxy(name):
 def kill_process(key_word):
     kill_logcat_cmd = f"ps -aux|grep '{key_word}'|grep -v 'grep'|awk '{{print $2}}'|xargs kill -9"
     os.system(kill_logcat_cmd)
+
+
+def mkdir_empty_dir(dir_path):
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    else:
+        shutil.rmtree(dir_path)
+        os.makedirs(dir_path)
 
 
 if __name__ == '__main__':

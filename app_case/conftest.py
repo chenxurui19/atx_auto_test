@@ -17,16 +17,19 @@ import wda
 import uiautomator2 as u2
 from py.xml import html
 from urllib.parse import quote
+import allure
 
-src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))   # 当前的目录详细位置
+src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))  # 当前的目录详细位置
 driver = None
-platform = ""   # 手机的平台
+platform = ""  # 手机的平台
 device_sn = ""  # 手机的设备号
 server_ip = "127.0.0.1"  # WDA代理运行的ip，一般WDA都在同一台电脑执行，使用'127.0.0.1'不需要修改
 datetime_format = "%Y-%m-%d_%H.%M.%S"  # 时间格式化
-bundle_id = None    # 测试的包名
+bundle_id = None  # 测试的包名
 phone_log_progress = None  # 抓取log的进程
-phone_log_path = ""  # 测试机缓存日志临时保存地址
+phone_log_path = "{}/log/temporary_file_log.log".format(src)  # 测试机缓存日志临时保存地址
+allure_result_dir = None    # 生成allur测试结果存放地址，默认为None，即不生成
+allure_report_dir = os.path.join(src, "allure_report")  # 生成allure报告存放地址
 
 
 # ----------------------------启动ATX服务--------------------------------
@@ -37,25 +40,28 @@ def driver_setup(request):
     :param request:
     :return:
     """
-    global driver, platform, device_sn, bundle_id, phone_log_progress
+    global driver, platform, device_sn, bundle_id, phone_log_progress, allure_result_dir, allure_report_dir
     device_sn = cmd_device_sn(request)
     GlobalVar.set_device_sn(device_sn)
     bundle_id = cmd_bundle_id(request)
     GlobalVar.set_bundle_id(bundle_id)
+    allure_result_dir = cmd_allure_result_dir(request)
 
-    log_dir = f"{src}/log/"  # log文件夹不存在就创建
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
+    log_dir = f"{src}/log"  # log文件夹不存在就创建，否则先删除再创建，防止占用太多磁盘空间
+    util.mkdir_empty_dir(log_dir)
 
-    report_dir = f"{src}/html_report/"  # html_report不存在就创建
-    if not os.path.exists(report_dir):
-        os.makedirs(report_dir)
+    report_dir = f"{src}/html_report"  # html_report不存在就创建，否则先删除再创建，防止占用太多磁盘空间
+    util.mkdir_empty_dir(report_dir)
+
+    if allure_result_dir:
+        util.mkdir_empty_dir(allure_result_dir)  # html_result不存在就创建，否则先删除再创建，防止占用太多磁盘空间
+        util.mkdir_empty_dir(allure_report_dir)
 
     wda_port = str(util.create_port(server_ip, 8100, 20000))  # 创建wda空闲端口号
     if len(device_sn) > 20:
         platform = GlobalVar.IOS
         GlobalVar.set_test_platform(GlobalVar.IOS)
-        log_path = "{}{}_{}.log".format(log_dir, "wda_log", datetime.now().strftime(datetime_format))
+        log_path = "{}/{}_{}.log".format(log_dir, "wda_log", datetime.now().strftime(datetime_format))
         d = Device(device_sn)
         cmd = [sys.executable, "-m", "tidevice", "-u", d.udid, "wdaproxy", "--port", wda_port]  # 启动WDA
         with open(log_path, "w+") as logfile:
@@ -113,7 +119,7 @@ def pytest_runtest_makereport(item):
     （2）可以获取钩子方法的调用结果（yield返回一个result对象）和调用结果的测试报告（返回一个report对象）
     每个测试用例执行后，制作测试报告
     """
-    global driver, datetime
+    global driver, allure_result_dir, allure_report_dir
     pytest_html = item.config.pluginmanager.getplugin('html')
     outcome = yield
     report = outcome.get_result()
@@ -125,15 +131,42 @@ def pytest_runtest_makereport(item):
         if (report.skipped and xfail) or (report.failed and not xfail):
             html_path = make_html_report_path(report.nodeid)
             name = datetime.now().strftime(datetime_format)
-            screenshot_html = save_screenshot(html_path, name)
+            screenshot_name = f"{name}.png"  # 截图统一名称
+            device_log_name = f"logcat_{name}.log"  # 测试机缓存日志统一名称
+            screenshot_path, screenshot_html = save_screenshot(html_path, screenshot_name)
             extra.append(pytest_html.extras.html(screenshot_html))
-            driver_log_html = save_failed_device_log(html_path, name)
+            device_log_path, driver_log_html = save_failed_device_log(html_path, device_log_name)
             extra.append(pytest_html.extras.html(driver_log_html))
             report.extra = extra
+
+            if allure_result_dir:
+                # 把断言失败截图也保存到allure_result目录里
+                allure_screenshot_path = os.path.join(allure_result_dir, screenshot_name)
+                save_file_to_allure_path(screenshot_path, allure_screenshot_path)
+                # 把断言失败测试机缓存log也保存到allure_result目录里
+                allure_device_log_path = os.path.join(allure_result_dir, device_log_name)
+                save_file_to_allure_path(device_log_path, allure_device_log_path)
+
+                allure.attach.file(allure_device_log_path, "【断言失败测试机日志:{}】".format(device_log_name),
+                                   allure.attachment_type.TEXT)
+                allure.attach.file(allure_screenshot_path, "【断言失败测试机截图:{}】".format(screenshot_name),
+                                   allure.attachment_type.PNG)
+
     if report.when == "teardown":
         # 用例测试完成，kill保存测试机日志的进程，再次缓存下次测试用例的日志
         phone_log_progress.kill()
         save_device_log()
+
+
+def save_file_to_allure_path(file_path, allure_path):
+    """
+    断言失败，保存日志和截图到allure_result目录
+    :return:
+    """
+    if sys.platform.startswith("win"):
+        os.system(f"copy {file_path} {allure_path}")
+    else:
+        os.system(f"cp {file_path} {allure_path}")
 
 
 def pytest_html_report_title(report):
@@ -153,11 +186,11 @@ def save_screenshot(html_path, name):
     :return:
     """
     global driver
-    html_path_name = '{}/{}.png'.format(html_path, name)
-    driver.screenshot(html_path_name)
+    screenshot_path = os.path.join(html_path, name)
+    driver.screenshot(screenshot_path)
     html = '<div><img src="{}" alt="screenshot" width="180" height="320"' \
-           'onclick="window.open(this.src)" align="right"/></div>'.format(html_path_name)
-    return html
+           'onclick="window.open(this.src)" align="right"/></div>'.format(screenshot_path)
+    return screenshot_path, html
 
 
 def pytest_configure(config):
@@ -224,10 +257,13 @@ def del_temporary_file():
 
 
 def pytest_sessionfinish(session, exitstatus):
-    phone_log_progress.kill()  # 杀死保存缓存日志的进程
+    if phone_log_progress:
+        phone_log_progress.kill()  # 杀死保存缓存日志的进程
     del_temporary_file()  # 删除临时缓存日志
     util.kill_wdaproxy(device_sn)  # 测试结束后结束本次会话
     # driver.app_stop_all()     # 结束所有APP
+    if allure_result_dir:
+        os.system(f"allure generate {allure_result_dir} -o {allure_report_dir} --clean")  # 生成allure报告
 
 
 def save_device_log():
@@ -235,8 +271,7 @@ def save_device_log():
     用例执行前，获取测试机的缓存日志，并保存
     :return:
     """
-    global platform, phone_log_progress, phone_log_path
-    phone_log_path = "{}/log/temporary_file_log.log".format(src)
+    global platform, phone_log_progress, phone_log_pat
     if platform == GlobalVar.IOS:
         cmd = ["tidevice", "-u", device_sn, "syslog"]
     else:
@@ -256,15 +291,15 @@ def save_failed_device_log(html_path, name):
     :return:save_failed_device_log
     """
     global platform, phone_log_path
-    html_path_name = '{}/logcat_{}.log'.format(html_path, name)
+    device_log_path = os.path.join(html_path, name)
     if sys.platform.startswith("win"):
-        cmd = ["move", phone_log_path, html_path_name]
+        cmd = ["move", phone_log_path, device_log_path]
     else:
-        cmd = ["mv", phone_log_path, html_path_name]
+        cmd = ["mv", phone_log_path, device_log_path]
     subprocess.Popen(cmd, stderr=subprocess.PIPE)
-    logcat_url = quote(html_path_name)
+    logcat_url = quote(device_log_path)
     html = '<div><a href="{0}">{0}</a></div>'.format(logcat_url)
-    return html
+    return device_log_path, html
 
 
 # ----------------------------命令行获取参数--------------------------------
@@ -285,4 +320,14 @@ def cmd_bundle_id(request):
     :return:
     """
     value = request.config.getoption("--bundle_id")
+    return value
+
+
+def cmd_allure_result_dir(request):
+    """
+    脚本获取命令行参数的接口：allure结果存放目录
+    :param request:
+    :return:
+    """
+    value = request.config.getoption("--alluredir")
     return value

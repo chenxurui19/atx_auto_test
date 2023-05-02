@@ -22,7 +22,7 @@ class TestSettingWifi:
     def test_setting_wifi(self, init_setup):
         """
         测试用例案例：打开设置->点击进入WiFi界面->断言，判断是否进入WiFi界面
-        :param init_setup: 前置条件 and 后置条件
+        :param init_setup: 前置条件:打开设置页面 and 后置条件：关闭设置页面
         :return:
         """
         logging.info("测试：点击Wi-Fi,进入到Wi-Fi连接界面")

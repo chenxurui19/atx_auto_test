@@ -382,7 +382,9 @@ if __name__ == '__main__':
     import uiautomator2 as u2
     #
     c = u2.connect()
-    bm = BaseMethod(c, "Android")
+    # c.xpath('//android.widget.TextView[@text="WLAN"]').all()[0].click()
+    # bm = BaseMethod(c, "Android")
+    # os.system("pip list")
     # bm.clear_app_data()
     # bm.stop_setting()
     # bm.start_setting()
@@ -395,8 +397,8 @@ if __name__ == '__main__':
     # bm.click_element((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA")))
     # bm.long_click_element((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA")))
     # print(bm.is_exist((MobileBy.TEXT_CONTAINS, ("android.widget.TextView", "WLA"))))
-    print(bm.wait_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
-    print(bm.wait_exist((MobileBy.TEXT, ("android.widget.TextView", "选取网络")), 10))
+    # print(bm.wait_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
+    # print(bm.wait_exist((MobileBy.TEXT, ("android.widget.TextView", "选取网络")), 10))
     # time.sleep(3)
     # print(bm.wait_no_exist((MobileBy.XPATH, '//android.widget.TextView[@text="选取网络"]')))
     # bm.swipe_by_screen('left')
