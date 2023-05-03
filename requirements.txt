@@ -1,6 +1,9 @@
 adbutils==1.2.9
 aircv==1.4.6
+allure-pytest==2.13.2
+allure-python-commons==2.13.2
 apkutils2==1.0.0
+attrs==23.1.0
 cached-property==1.5.2
 certifi==2022.12.7
 charset-normalizer==3.1.0
