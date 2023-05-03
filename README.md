@@ -62,6 +62,7 @@ python -m weditor
 按照如下配置，点击执行按钮即可<br /> 
 ![pycharm_start.png](exampe_image%2Fpycharm_start.png)
 -m：需要执行的标签，例如案例setting_wifi，如需同时执行标签A和标签B，则可填写-m "A or B"，如需要执行同时满足标签A和B，则可填写-m "A and B"<br /> 
---count：需要执行的次数，例如--count=100，就是执行100次<br /> 
---html：html_report生成地址，一般填写-html=../html_report/html_report.html即可<br /> 
+--count：需要执行的次数，例如--count=100，就是执行100次<br />
 --device_sn：设备号，Android用adb devices，iOS用tidevice list<br />
+--html：html_report生成地址，一般填写--html=../html_report/html_report.html即可<br /> 
+--alluredir：allure测试结果存放地址，一般填写--allure_dir=../allure_result即可，测试完成allure报告会自动生成在allure_report<br />
