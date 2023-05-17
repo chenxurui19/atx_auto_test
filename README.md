@@ -68,4 +68,4 @@ python -m weditor
 --device_sn：设备号，Android用adb devices，iOS用tidevice list<br />
 --html：html_report生成地址，一般填写--html=../html_report/html_report.html即可<br /> 
 --alluredir：allure测试结果存放地址，一般填写--allure_dir=../allure_result即可，测试完成allure报告会自动生成在allure_report<br />
---perf_flag: 性能数据采集开关，默认关闭，1为开启，0为关闭，填写--perf_flag即为打开
+--perf_flag: 性能数据采集开关，默认关闭，1为开启，0为关闭，填写--perf_flag=1即为打开
