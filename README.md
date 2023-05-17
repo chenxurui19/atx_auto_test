@@ -3,6 +3,8 @@
 ## 效果展示
 ![效果展示_1.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_1.png)
 ![效果展示_2.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_2.png)
+性能数据收集开关打开
+![效果展示_3.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_3.png)
 ## 目录结构
 ```
 .
@@ -66,3 +68,4 @@ python -m weditor
 --device_sn：设备号，Android用adb devices，iOS用tidevice list<br />
 --html：html_report生成地址，一般填写--html=../html_report/html_report.html即可<br /> 
 --alluredir：allure测试结果存放地址，一般填写--allure_dir=../allure_result即可，测试完成allure报告会自动生成在allure_report<br />
+--perf_flag: 性能数据采集开关，默认关闭，1为开启，0为关闭，填写--perf_flag即为打开

@@ -8,7 +8,6 @@ import sys
 import re
 import logging
 import subprocess
-import multiprocessing
 import time
 import threading
 
@@ -19,7 +18,8 @@ perf_dict = {
     "app_gpu": [],
     "app_fps": []
 }
-stop_flag = False  # 全局变量用于控制循环停止
+# 用于控制线程的标志变量
+running = False
 
 
 class ADB(object):
@@ -59,7 +59,6 @@ def getPid(device_sn, bundle_id):
     """
     result = os.popen(f"adb -s {device_sn} shell ps | {filterType()} {bundle_id}").readlines()
     processList = ['{}:{}'.format(process.split()[1], process.split()[7]) for process in result]
-    logging.info(processList)
     if len(processList) == 0:
         logging.warning('no pid found')
     return processList
@@ -107,7 +106,9 @@ def get_cpu_usage_rate(device_sn, bundle_id):
     cpu_usage["system_cpu_usage"] = float(system_usage.group(1)) + float(system_usage.group(2)) + float(
         system_usage.group(3)) + float(system_usage.group(4))
     cpu_usage["app_cpu_usage"] = float(re.search(r'\b{}\s+\d+\s+(\d)+%\s+'.format(app_pid), output_str).group(1))
-
+    global perf_dict
+    perf_dict["sys_cpu"].append(cpu_usage["system_cpu_usage"])
+    perf_dict["app_cpu"].append(cpu_usage["app_cpu_usage"])
     return cpu_usage
 
 
@@ -128,6 +129,7 @@ def get_men_usage_rate(device_sn, bundle_id):
 
     men_usage["system_men_usage"] = match_used / match_total * 100
     men_usage["app_men_usage"] = match_app / match_total * 100
+    perf_dict["app_memory"].append(men_usage["app_men_usage"])
     return men_usage
 
 
@@ -143,16 +145,19 @@ def get_fps(device_sn, bundle_id):
     monitors = FPSMonitor(device_id=device_sn, package_name=bundle_id, frequency=1)
     monitors.start()
     dict1["fps"], dict1["jank"] = monitors.stop()
+    perf_dict["app_fps"].append(dict1["fps"])
     return dict1
 
 
-def get_gpu_usage(device_sn, bundle_id):
+def get_gpu_usage(device_sn, bundle_id, duration=1):
     """
     获取安卓设备应用占用的GPU百分比
     :param device_sn:
     :param bundle_id:
+    :param duration:
     :return:
     """
+    time.sleep(duration)
     output_str = adb.shell(f"dumpsys gfxinfo {bundle_id}", device_sn)
     lines = output_str.strip().split("\n")
     gpu_operations = 0
@@ -178,58 +183,46 @@ def get_gpu_usage(device_sn, bundle_id):
     # 计算GPU使用率
     if total_operations > 0:
         gpu_usage = (gpu_operations / total_operations) * 100
+        perf_dict["app_gpu"].append(gpu_usage)
         return gpu_usage
     else:
-        logging.error("获取GPU数据失败！！！")
+        # logging.error("获取GPU数据失败！！！")
         return None
 
 
-def get_all_perf(device_sn, bundle_id):
-    global stop_flag
-
-    while not stop_flag:
-        pool = multiprocessing.Pool(processes=4)
-        results = [pool.apply_async(get_cpu_usage_rate, (device_sn, bundle_id)),
-                   pool.apply_async(get_men_usage_rate, (device_sn, bundle_id)),
-                   pool.apply_async(get_gpu_usage, (device_sn, bundle_id)),
-                   pool.apply_async(get_fps, (device_sn, bundle_id))]
-        pool.close()
-        pool.join()
-
-        # 获取每个进程的返回结果
-        system_cpu_usage = results[0].get()["system_cpu_usage"]
-        app_cpu_usage = results[0].get()["app_cpu_usage"]
-        app_memory = results[1].get()["app_men_usage"]
-        app_gpu = results[2].get()
-        app_fps = results[3].get()["fps"]
-
-        global perf_dict
-        if system_cpu_usage:
-            perf_dict["sys_cpu"].append(system_cpu_usage)
-        if app_cpu_usage:
-            perf_dict["app_cpu"].append(app_cpu_usage)
-        if app_memory:
-            perf_dict["app_memory"].append(app_memory)
-        if app_gpu:
-            perf_dict["app_gpu"].append(app_gpu)
-        if app_fps:
-            perf_dict["app_fps"].append(app_fps)
+def start_collect_perf(device_sn, bundle_id):
+    global running, perf_dict
+    perf_dict["sys_cpu"].clear()
+    perf_dict["app_cpu"].clear()
+    perf_dict["app_memory"].clear()
+    perf_dict["app_gpu"].clear()
+    perf_dict["app_fps"].clear()
+    if not running:
+        running = True
+        # 创建并启动线程
+        thread1 = threading.Thread(target=lambda: run_function(get_cpu_usage_rate, device_sn, bundle_id))
+        thread2 = threading.Thread(target=lambda: run_function(get_men_usage_rate, device_sn, bundle_id))
+        thread3 = threading.Thread(target=lambda: run_function(get_gpu_usage, device_sn, bundle_id))
+        thread4 = threading.Thread(target=lambda: run_function(get_fps, device_sn, bundle_id))
+        thread1.start()
+        thread2.start()
+        thread3.start()
+        thread4.start()
 
 
-def start_collect(device_sn, bundle_id):
-    t = threading.Thread(target=get_all_perf, args=(device_sn, bundle_id))
-    t.start()
+def run_function(func, *args):
+    while running:
+        func(*args)
 
 
-def stop_collect():
-    global stop_flag
-    stop_flag = True
-    # 执行其他停止收集的操作，如保存数据等
+def stop_collect_perf():
+    global running, perf_dict
+    running = False
     return perf_dict
 
 
 if __name__ == '__main__':
-    start_collect("bade2f7", "com.tencent.qqmusic")
+    start_collect_perf("bade2f7", "com.tencent.qqmusic")
     time.sleep(10)
-    data = stop_collect()
+    data = stop_collect_perf()
     print(data)

@@ -7,15 +7,15 @@ import time
 import tidevice
 from tidevice._perf import DataType
 from config.config import GlobalVar
-import adb_common
-
+from .adb_common import start_collect_perf, stop_collect_perf
 global perf_thread, sys_cpu_perf, app_cpu_perf, memory_pef, gpu_pef, fps_pef, worker_process
-perf_dict = dict()
-perf_dict["sys_cpu"] = list()
-perf_dict["app_cpu"] = list()
-perf_dict["app_memory"] = list()
-perf_dict["app_gpu"] = list()
-perf_dict["app_fps"] = list()
+perf_dict = {
+    "sys_cpu": [],
+    "app_cpu": [],
+    "app_memory": [],
+    "app_gpu": [],
+    "app_fps": []
+}
 
 
 class PerfUtil:
@@ -66,7 +66,7 @@ class PerfUtil:
 
             perf_thread.start(self.bundle_id, callback=callback)
         else:  # Android获取性能数据线程
-            adb_common.start_collect(self.device_sn, self.bundle_id)
+            start_collect_perf(self.device_sn, self.bundle_id)
 
     def stop_get_perf(self):
         """
@@ -79,7 +79,7 @@ class PerfUtil:
             perf_dict["app_fps"] = perf_dict["app_fps"][1:]  # 第一个数值不取
             return perf_dict
         else:
-            perf_data = adb_common.stop_collect()
+            perf_data = stop_collect_perf()
             return perf_data
 
 
@@ -92,8 +92,8 @@ if __name__ == '__main__':
     print(data)
 
     # ios
-    perf_util = PerfUtil("9926f93e701c2ef0fab94c171daedcc8e9357d67", "com.tencent.xin")
-    perf_util.start_get_perf()
-    time.sleep(10)
-    data = perf_util.stop_get_perf()
-    print(data)
+    # perf_util = PerfUtil("9926f93e701c2ef0fab94c171daedcc8e9357d67", "com.tencent.xin")
+    # perf_util.start_get_perf()
+    # time.sleep(10)
+    # data = perf_util.stop_get_perf()
+    # print(data)

@@ -18,6 +18,7 @@ import uiautomator2 as u2
 from py.xml import html
 from urllib.parse import quote
 import allure
+from util.perf_util import PerfUtil
 
 src = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))  # 当前的目录详细位置
 driver = None
@@ -30,6 +31,15 @@ phone_log_progress = None  # 抓取log的进程
 phone_log_path = "{}/log/temporary_file_log.log".format(src)  # 测试机缓存日志临时保存地址
 allure_result_dir = None    # 生成allur测试结果存放地址，默认为None，即不生成
 allure_report_dir = os.path.join(src, "allure_report")  # 生成allure报告存放地址
+perf_data = {
+    "sys_cpu": [],
+    "app_cpu": [],
+    "app_memory": [],
+    "app_gpu": [],
+    "app_fps": []
+}   # 性能数据收集
+perf_index = 0
+perf_flag = 0   # 性能数据收集开关，默认关闭
 
 
 # ----------------------------启动ATX服务--------------------------------
@@ -40,12 +50,13 @@ def driver_setup(request):
     :param request:
     :return:
     """
-    global driver, platform, device_sn, bundle_id, phone_log_progress, allure_result_dir, allure_report_dir
+    global driver, platform, device_sn, bundle_id, phone_log_progress, allure_result_dir, allure_report_dir, perf_flag
     device_sn = cmd_device_sn(request)
     GlobalVar.set_device_sn(device_sn)
     bundle_id = cmd_bundle_id(request)
     GlobalVar.set_bundle_id(bundle_id)
     allure_result_dir = cmd_allure_result_dir(request)
+    perf_flag = cmd_perf_flag(request)
 
     log_dir = f"{src}/log"  # log文件夹不存在就创建，否则先删除再创建，防止占用太多磁盘空间
     util.mkdir_empty_dir(log_dir)
@@ -96,6 +107,7 @@ def pytest_addoption(parser):
     """
     parser.addoption("--device_sn", action="store", default="", help="手机设备号")
     parser.addoption("--bundle_id", action="store", default="", help="测试包名")
+    parser.addoption("--perf_flag", action="store", default=0, help="性能收集开关，1为开启，0为关闭")
 
 
 # ----------------------------配置html_report报告--------------------------------
@@ -119,13 +131,32 @@ def pytest_runtest_makereport(item):
     （2）可以获取钩子方法的调用结果（yield返回一个result对象）和调用结果的测试报告（返回一个report对象）
     每个测试用例执行后，制作测试报告
     """
-    global driver, allure_result_dir, allure_report_dir
+    global driver, allure_result_dir, allure_report_dir, perf_util, perf_flag
     pytest_html = item.config.pluginmanager.getplugin('html')
     outcome = yield
     report = outcome.get_result()
     report.description = get_description(item)
     report.nodeid = report.nodeid.encode("utf-8").decode("unicode_escape")
     extra = getattr(report, 'extra', [])
+
+    if report.when == "setup" and perf_flag:
+        global perf_data, perf_index
+        logging.info("前置：性能数据收集已开启")
+        perf_index = 0
+        perf_util = PerfUtil(device_sn, bundle_id)
+        perf_util.start_get_perf()   # 进入测试体，性能数据收集开始
+    if report.when == "call" and perf_flag:
+        global perf_data
+        logging.info("后置：性能数据收集已开启")
+        temp = perf_util.stop_get_perf()    # 测试体测试完成，性能数据结束
+        # -------------------------------
+        logging.info(temp)
+        perf_data["sys_cpu"].append(sum(temp["sys_cpu"]) / len(temp["sys_cpu"]) if len(temp["sys_cpu"]) > 0 else None)
+        perf_data["app_cpu"].append(sum(temp["app_cpu"]) / len(temp["app_cpu"]) if len(temp["app_cpu"]) > 0 else None)
+        perf_data["app_memory"].append(sum(temp["app_memory"]) / len(temp["app_memory"]) if len(temp["app_memory"]) > 0 else None)
+        perf_data["app_gpu"].append(sum(temp["app_gpu"]) / len(temp["app_gpu"]) if len(temp["app_gpu"]) > 0 else None)
+        perf_data["app_fps"].append(sum(temp["app_fps"]) / len(temp["app_fps"]) if len(temp["app_fps"]) > 0 else None)
+
     if report.when == 'call' or report.when == "setup" or report.when == "teardown":
         xfail = hasattr(report, 'wasxfail')
         if (report.skipped and xfail) or (report.failed and not xfail):
@@ -302,6 +333,37 @@ def save_failed_device_log(html_path, name):
     return device_log_path, html
 
 
+@pytest.mark.optionalhook
+def pytest_html_results_table_header(cells):
+    """
+    增加pytest-html列名
+    :param cells:
+    :return:
+    """
+    global perf_flag
+    if perf_flag:
+        cells.insert(2, html.th('系统_CPU总占用率(%)'))
+        cells.insert(3, html.th('APP_CPU占用率(%)'))
+        cells.insert(4, html.th('APP_内存占用率(%)'))
+        cells.insert(5, html.th('APP_GPU占用率(%)'))
+        cells.insert(6, html.th('APP_FPS(fps)'))
+
+
+@pytest.mark.optionalhook
+def pytest_html_results_table_row(report, cells):
+    global perf_data, perf_index
+    if perf_flag:
+        try:    # APP闪退，可能就会发生异常
+            cells.insert(2, html.td(perf_data["sys_cpu"][perf_index]))
+            cells.insert(3, html.td(perf_data["app_cpu"][perf_index]))
+            cells.insert(4, html.td(perf_data["app_memory"][perf_index]))
+            cells.insert(5, html.td(perf_data["app_gpu"][perf_index]))
+            cells.insert(6, html.td(perf_data["app_fps"][perf_index]))
+            perf_index += 1
+        except Exception as e:
+            pass
+
+
 # ----------------------------命令行获取参数--------------------------------
 def cmd_device_sn(request):
     """
@@ -321,6 +383,16 @@ def cmd_bundle_id(request):
     """
     value = request.config.getoption("--bundle_id")
     return value
+
+
+def cmd_perf_flag(request):
+    """
+    脚本获取命令行参数的接口：性能数据收集开关
+    :param request:
+    :return:
+    """
+    value = request.config.getoption("--perf_flag")
+    return int(value)
 
 
 def cmd_allure_result_dir(request):

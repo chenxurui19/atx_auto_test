@@ -26,6 +26,7 @@ class TestSettingWifi:
         :return:
         """
         logging.info("测试：点击Wi-Fi,进入到Wi-Fi连接界面")
+        time.sleep(5)
         setting_method.click_wifi_text()
         # 如果已经进入到Wi-Fi界面，但是判断控件找不到，即判定没有进入到Wi-Fi界面，可以用添加or继续判定更加准确，请同学们自由发挥。
         result = setting_method.check_network_text_status()
