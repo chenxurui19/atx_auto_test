@@ -1,5 +1,5 @@
 # atx_auto_test
-这是一款基于ATX（即uiautomator2+facebook_wda）二次封装的移动ui自动化框架，按照规定的自动化用例编写用例风格，可以一套用例兼容Android和iOS测试设备，同时测试iOS APP时也无需手动启动WDA，测试结束会生成详细可观的Allure报告和HTML报告，相比与Appium会有更快的启动速度和控件查找速度。
+这是一款基于ATX（即uiautomator2+facebook_wda）二次封装的移动ui自动化框架，按照规定的自动化用例编写用例风格，可以一套用例兼容Android和iOS测试设备，同时测试iOS APP时也无需手动启动WDA，测试结束会生成详细可观的Allure报告和pytest-html报告，相比与Appium会有更快的启动速度和控件查找速度。
 ## 效果展示
 ![效果展示_1.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_1.png)
 ![效果展示_2.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_2.png)
