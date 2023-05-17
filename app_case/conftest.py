@@ -231,7 +231,6 @@ def pytest_configure(config):
     :return:
     """
     config._metadata["测试开始时间"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    config._metadata["测试包"] = bundle_id
 
 
 def pytest_html_results_summary(prefix, summary, postfix):
