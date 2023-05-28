@@ -35,8 +35,9 @@ perf_data = {
     "sys_cpu": [],
     "app_cpu": [],
     "app_memory": [],
-    "app_gpu": [],
-    "app_fps": []
+    "sys_gpu": [],
+    "app_fps": [],
+    "temp": []
 }   # 性能数据收集
 perf_index = 0
 perf_flag = 0   # 性能数据收集开关，默认关闭
@@ -151,11 +152,12 @@ def pytest_runtest_makereport(item):
         temp = perf_util.stop_get_perf()    # 测试体测试完成，性能数据结束
         # -------------------------------
         logging.info(temp)
-        perf_data["sys_cpu"].append(sum(temp["sys_cpu"]) / len(temp["sys_cpu"]) if len(temp["sys_cpu"]) > 0 else None)
-        perf_data["app_cpu"].append(sum(temp["app_cpu"]) / len(temp["app_cpu"]) if len(temp["app_cpu"]) > 0 else None)
-        perf_data["app_memory"].append(sum(temp["app_memory"]) / len(temp["app_memory"]) if len(temp["app_memory"]) > 0 else None)
-        perf_data["app_gpu"].append(sum(temp["app_gpu"]) / len(temp["app_gpu"]) if len(temp["app_gpu"]) > 0 else None)
-        perf_data["app_fps"].append(sum(temp["app_fps"]) / len(temp["app_fps"]) if len(temp["app_fps"]) > 0 else None)
+        perf_data["sys_cpu"].append(round(sum(temp["sys_cpu"]) / len(temp["sys_cpu"]), 2) if len(temp["sys_cpu"]) > 0 else None)
+        perf_data["app_cpu"].append(round(sum(temp["app_cpu"]) / len(temp["app_cpu"]), 2) if len(temp["app_cpu"]) > 0 else None)
+        perf_data["app_memory"].append(round(sum(temp["app_memory"]) / len(temp["app_memory"]), 2) if len(temp["app_memory"]) > 0 else None)
+        perf_data["sys_gpu"].append(round(sum(temp["sys_gpu"]) / len(temp["sys_gpu"]), 2) if len(temp["sys_gpu"]) > 0 else None)
+        perf_data["app_fps"].append(round(sum(temp["app_fps"]) / len(temp["app_fps"]), 2) if len(temp["app_fps"]) > 0 else None)
+        perf_data["temp"].append(round(sum(temp["temp"]) / len(temp["temp"]), 2) if len(temp["temp"]) > 0 else None)
 
     if report.when == 'call' or report.when == "setup" or report.when == "teardown":
         xfail = hasattr(report, 'wasxfail')
@@ -343,9 +345,10 @@ def pytest_html_results_table_header(cells):
     if perf_flag:
         cells.insert(2, html.th('系统_CPU总占用率(%)'))
         cells.insert(3, html.th('APP_CPU占用率(%)'))
-        cells.insert(4, html.th('APP_内存占用率(%)'))
-        cells.insert(5, html.th('APP_GPU占用率(%)'))
+        cells.insert(4, html.th('APP_内存占用(M)'))
+        cells.insert(5, html.th('SYS_GPU占用率(%)'))
         cells.insert(6, html.th('APP_FPS(fps)'))
+        cells.insert(7, html.th('温度(度)'))
 
 
 @pytest.mark.optionalhook
@@ -356,8 +359,9 @@ def pytest_html_results_table_row(report, cells):
             cells.insert(2, html.td(perf_data["sys_cpu"][perf_index]))
             cells.insert(3, html.td(perf_data["app_cpu"][perf_index]))
             cells.insert(4, html.td(perf_data["app_memory"][perf_index]))
-            cells.insert(5, html.td(perf_data["app_gpu"][perf_index]))
+            cells.insert(5, html.td(perf_data["sys_gpu"][perf_index]))
             cells.insert(6, html.td(perf_data["app_fps"][perf_index]))
+            cells.insert(7, html.td(perf_data["temp"][perf_index]))
             perf_index += 1
         except Exception as e:
             pass

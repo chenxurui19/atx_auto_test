@@ -3,7 +3,7 @@
 ## 效果展示
 ![效果展示_1.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_1.png)
 ![效果展示_2.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_2.png)
-性能数据收集开关打开
+性能数据收集开关打开(iOS性能数据跟perfdog几乎相同，Android性能数据只实现获取gpu和温度)
 ![效果展示_3.png](exampe_image%2F%E6%95%88%E6%9E%9C%E5%B1%95%E7%A4%BA_3.png)
 ## 目录结构
 ```
