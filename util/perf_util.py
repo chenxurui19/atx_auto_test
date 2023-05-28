@@ -92,7 +92,6 @@ class IOSPerf:
             if _type.value == "cpu":
                 self.perf_dict["sys_cpu"].append(round(value["sys_value"] / value["count"], 2))
                 self.perf_dict["app_cpu"].append(round(value["value"] / value["count"], 2))
-                print(self.perf_dict)
             elif _type.value == "memory":
                 self.perf_dict["app_memory"].append(round(value["value"], 2))
             elif _type.value == "gpu":
