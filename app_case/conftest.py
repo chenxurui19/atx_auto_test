@@ -14,6 +14,7 @@ from datetime import datetime
 import subprocess
 import time
 import wda
+import shutil
 import uiautomator2 as u2
 from py.xml import html
 from urllib.parse import quote
@@ -196,10 +197,7 @@ def save_file_to_allure_path(file_path, allure_path):
     断言失败，保存日志和截图到allure_result目录
     :return:
     """
-    if sys.platform.startswith("win"):
-        os.system(f"copy {file_path} {allure_path}")
-    else:
-        os.system(f"cp {file_path} {allure_path}")
+    shutil.copy(file_path, allure_path)
 
 
 def pytest_html_report_title(report):
@@ -324,11 +322,7 @@ def save_failed_device_log(html_path, name):
     """
     global platform, phone_log_path
     device_log_path = os.path.join(html_path, name)
-    if sys.platform.startswith("win"):
-        cmd = ["move", phone_log_path, device_log_path]
-    else:
-        cmd = ["mv", phone_log_path, device_log_path]
-    subprocess.Popen(cmd, stderr=subprocess.PIPE)
+    shutil.copy(phone_log_path, device_log_path)
     logcat_url = quote(device_log_path)
     html = '<div><a href="{0}">{0}</a></div>'.format(logcat_url)
     return device_log_path, html
